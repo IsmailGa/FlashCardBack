@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const sequelize = require("./config/database");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const authRoutes = require("./routes/authRoutes");
 const deckRoutes = require("./routes/deckRoutes");
 const cardRoutes = require("./routes/cardRoutes");
@@ -9,8 +10,14 @@ const deckRatingRoutes = require("./routes/deckRatingRoutes");
 const userCardAnswerRoutes = require("./routes/userCardAnswerRoutes");
 
 const app = express();
+
+// Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cookieParser());
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:3000', // Replace with your frontend URL
+  credentials: true // This is important for cookies
+}));
 
 app.get("/", (req, res) => {
   res.send("Welcome to the API!");

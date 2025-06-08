@@ -1,6 +1,7 @@
 const db = require("../models");
-const Deck = db.Deck;
-const Card = db.Card;
+const { Deck, Card, UserCardAnswer, User } = require("../models");
+const { Op } = require("sequelize");
+const sequelize = require("sequelize");
 
 // Create a new deck
 const createDeck = async (req, res) => {
@@ -217,6 +218,61 @@ const deleteDeck = async (req, res) => {
   }
 };
 
+// Get recently played decks
+const getRecentDecks = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = parseInt(req.query.limit) || 5; // Default to 5 recent decks
+
+    // Get unique decks that the user has answered cards from
+    const recentDecks = await Deck.findAll({
+      include: [
+        {
+          model: Card,
+          include: [
+            {
+              model: UserCardAnswer,
+              where: { userId },
+              required: true,
+              attributes: ['createdAt'],
+            },
+          ],
+          required: true,
+        },
+      ],
+      attributes: [
+        'id',
+        'title',
+        'description',
+        'createdAt',
+        'updatedAt',
+        [sequelize.fn('MAX', sequelize.col('Cards.UserCardAnswers.createdAt')), 'lastPlayedAt'],
+      ],
+      group: ['Deck.id'],
+      order: [[sequelize.literal('lastPlayedAt'), 'DESC']],
+      limit,
+    });
+
+    // Format the response
+    const formattedDecks = recentDecks.map(deck => ({
+      id: deck.id,
+      title: deck.title,
+      description: deck.description,
+      lastPlayedAt: deck.getDataValue('lastPlayedAt'),
+      createdAt: deck.createdAt,
+      updatedAt: deck.updatedAt,
+    }));
+
+    res.json({
+      message: "Recent decks retrieved successfully",
+      decks: formattedDecks,
+    });
+  } catch (error) {
+    console.error("Error getting recent decks:", error);
+    res.status(500).json({ message: "Error retrieving recent decks" });
+  }
+};
+
 module.exports = {
   createDeck,
   getUserDecks,
@@ -224,4 +280,5 @@ module.exports = {
   getDeck,
   updateDeck,
   deleteDeck,
+  getRecentDecks,
 }; 

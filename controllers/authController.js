@@ -1,3 +1,4 @@
+require("dotenv").config();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { User, UserSession } = require("../models");
@@ -32,25 +33,8 @@ const register = async (req, res) => {
       hashedPassword,
     });
 
-    // Generate token
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "24h" }
-    );
-
-    // Create session
-    await UserSession.create({
-      userId: user.id,
-      token,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-      userAgent: req.headers["user-agent"],
-      ipAddress: req.ip,
-    });
-
     res.status(201).json({
       message: "User registered successfully",
-      token,
       user: {
         id: user.id,
         fullName: user.fullName,
@@ -82,25 +66,39 @@ const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Generate token
-    const token = jwt.sign(
+    // Generate access token
+    const accessToken = jwt.sign(
       { id: user.id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: "24h" }
+      { expiresIn: "15m" }
     );
 
-    // Create session
+    // Generate refresh token
+    const refreshToken = jwt.sign(
+      { id: user.id },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // Create session with refresh token
     await UserSession.create({
       userId: user.id,
-      token,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      token: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       userAgent: req.headers["user-agent"],
       ipAddress: req.ip,
     });
 
+    // Set refresh token in HTTP-only cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     res.json({
       message: "Login successful",
-      token,
+      accessToken,
       user: {
         id: user.id,
         fullName: user.fullName,
@@ -118,9 +116,9 @@ const login = async (req, res) => {
 // Logout user
 const logout = async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(400).json({ message: "No token provided" });
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      return res.status(400).json({ message: "No refresh token found" });
     }
 
     // Deactivate session
@@ -128,11 +126,17 @@ const logout = async (req, res) => {
       { isActive: false },
       {
         where: {
-          token,
+          token: refreshToken,
           userId: req.user.id,
         },
       }
     );
+
+    // Clear the refresh token cookie
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    });
 
     res.json({ message: "Logged out successfully" });
   } catch (error) {
@@ -252,4 +256,65 @@ const changePassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, logout, getCurrentUser, updateProfile, changePassword };
+// Refresh access token
+const refreshToken = async (req, res) => {
+  try {
+    const refreshToken = req.refreshToken;
+    if (!refreshToken) {
+      return res.status(400).json({ message: "Refresh token is required" });
+    }
+
+    // Check if session exists and is active
+    const session = await UserSession.findOne({
+      where: {
+        token: refreshToken,
+        userId: req.user.id,
+        isActive: true,
+        expiresAt: { [Op.gt]: new Date() }
+      }
+    });
+
+    if (!session) {
+      // Clear the invalid refresh token cookie
+      res.clearCookie('refreshToken');
+      return res.status(401).json({ message: "Invalid or expired refresh token" });
+    }
+
+    // Generate new access token
+    const newAccessToken = jwt.sign(
+      { id: req.user.id, email: req.user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    res.json({
+      message: "Token refreshed successfully",
+      accessToken: newAccessToken,
+      user: {
+        id: req.user.id,
+        fullName: req.user.fullName,
+        userName: req.user.userName,
+        email: req.user.email,
+        avatarUrl: req.user.avatarUrl,
+      },
+    });
+  } catch (error) {
+    console.error("Token refresh error:", error);
+    if (error.name === 'TokenExpiredError') {
+      // Clear the expired refresh token cookie
+      res.clearCookie('refreshToken');
+      return res.status(401).json({ message: "Refresh token has expired" });
+    }
+    res.status(500).json({ message: "Error refreshing token" });
+  }
+};
+
+module.exports = {
+  register,
+  login,
+  logout,
+  getCurrentUser,
+  updateProfile,
+  changePassword,
+  refreshToken
+};

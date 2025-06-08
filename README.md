@@ -1,72 +1,12 @@
-# Flash Card API Documentation
+# Flash Card Backend API
 
-## Setup & Configuration
-
-1. **Database Configuration**
-   - The server uses a `config/config.js` file for Sequelize database configuration.
-   - Example `config/config.js`:
-     ```js
-     module.exports = {
-       development: {
-         username: "postgres",
-         password: "your_password",
-         database: "flash_card_db",
-         host: "127.0.0.1",
-         dialect: "postgres"
-       },
-       test: {
-         username: "postgres",
-         password: "your_password",
-         database: "flash_card_db_test",
-         host: "127.0.0.1",
-         dialect: "postgres"
-       },
-       production: {
-         username: "postgres",
-         password: "your_password",
-         database: "flash_card_db_prod",
-         host: "127.0.0.1",
-         dialect: "postgres"
-       }
-     };
-     ```
-   - Make sure your database credentials match your local setup.
-
-2. **Environment Variables**
-   - Create a `.env` file in the project root with at least:
-     ```env
-     JWT_SECRET=your_jwt_secret
-     ```
-
-3. **Database Migration**
-   - Run migrations to set up the database tables:
-     ```sh
-     npx sequelize-cli db:migrate
-     ```
-
-4. **Start the Server**
-   - Use `npm start` or `nodemon` to run the server.
-
----
-
-## Base URL
-```
-http://localhost:5000/api/v1
-```
-
-## Authentication
-All protected routes require a JWT token in the Authorization header:
-```
-Authorization: Bearer <your_token>
-```
-
-## Endpoints
+## API Documentation
 
 ### Authentication
 
 #### Register User
 ```http
-POST /auth/register
+POST /api/v1/auth/register
 ```
 Request body:
 ```json
@@ -75,26 +15,12 @@ Request body:
   "userName": "johndoe",
   "email": "john@example.com",
   "password": "your_password"
-}
-```
-Response:
-```json
-{
-  "message": "User registered successfully",
-  "token": "jwt_token",
-  "user": {
-    "id": "uuid",
-    "fullName": "John Doe",
-    "userName": "johndoe",
-    "email": "john@example.com",
-    "avatarUrl": null
-  }
 }
 ```
 
 #### Login
 ```http
-POST /auth/login
+POST /api/v1/auth/login
 ```
 Request body:
 ```json
@@ -103,115 +29,71 @@ Request body:
   "password": "your_password"
 }
 ```
-Response:
-```json
-{
-  "message": "Login successful",
-  "token": "jwt_token",
-  "user": {
-    "id": "uuid",
-    "fullName": "John Doe",
-    "userName": "johndoe",
-    "email": "john@example.com",
-    "avatarUrl": null
-  }
-}
+Response includes:
+- Access token (valid for 15 minutes)
+- Refresh token (stored in HTTP-only cookie, valid for 7 days)
+
+#### Refresh Token
+```http
+POST /api/v1/auth/refresh-token
+```
+Headers:
+```
+Authorization: Bearer <your_token>
+```
+The refresh token is automatically read from cookies.
+
+#### Validate Token
+```http
+POST /api/v1/auth/validate-token
+```
+Headers:
+```
+Authorization: Bearer <your_token>
 ```
 
 #### Logout
 ```http
-POST /auth/logout
+POST /api/v1/auth/logout
 ```
 Headers:
 ```
 Authorization: Bearer <your_token>
-```
-Response:
-```json
-{
-  "message": "Logged out successfully"
-}
-```
-
-#### Get Current User
-```http
-GET /auth/me
-```
-Headers:
-```
-Authorization: Bearer <your_token>
-```
-Response:
-```json
-{
-  "id": "uuid",
-  "fullName": "John Doe",
-  "userName": "johndoe",
-  "email": "john@example.com",
-  "avatarUrl": null,
-  "createdAt": "2024-03-07T12:00:00.000Z",
-  "updatedAt": "2024-03-07T12:00:00.000Z"
-}
-```
-
-#### Update Profile
-```http
-PUT /auth/profile
-```
-Headers:
-```
-Authorization: Bearer <your_token>
-```
-Request body:
-```json
-{
-  "fullName": "John Updated",
-  "userName": "johnupdated",
-  "email": "john.updated@example.com",
-  "avatarUrl": "https://example.com/avatar.jpg"
-}
-```
-Response:
-```json
-{
-  "message": "Profile updated successfully",
-  "user": {
-    "id": "uuid",
-    "fullName": "John Updated",
-    "userName": "johnupdated",
-    "email": "john.updated@example.com",
-    "avatarUrl": "https://example.com/avatar.jpg"
-  }
-}
-```
-
-#### Change Password
-```http
-PUT /auth/change-password
-```
-Headers:
-```
-Authorization: Bearer <your_token>
-```
-Request body:
-```json
-{
-  "currentPassword": "old_password",
-  "newPassword": "new_password"
-}
-```
-Response:
-```json
-{
-  "message": "Password changed successfully"
-}
 ```
 
 ### Decks
 
+#### Get Recent Decks
+```http
+GET /api/v1/decks/recent
+```
+Headers:
+```
+Authorization: Bearer <your_token>
+```
+Query Parameters:
+- `limit` (optional): Number of recent decks to return (default: 5)
+
+Response:
+```json
+{
+  "message": "Recent decks retrieved successfully",
+  "decks": [
+    {
+      "id": "uuid",
+      "title": "Spanish Vocabulary",
+      "description": "Basic Spanish words",
+      "lastPlayedAt": "2024-03-14T12:00:00Z",
+      "createdAt": "2024-03-14T10:00:00Z",
+      "updatedAt": "2024-03-14T10:00:00Z"
+    }
+  ]
+}
+```
+
 #### Get All Decks (Public and User's Private)
 ```http
-GET /decks
+GET /api/v1/decks
 ```
 Headers:
 ```
@@ -229,16 +111,16 @@ Response:
       "isPublic": true,
       "userId": "uuid",
       "cardCount": 10,
-      "createdAt": "2024-03-07T12:00:00.000Z",
-      "updatedAt": "2024-03-07T12:00:00.000Z"
+      "createdAt": "2024-03-14T12:00:00Z",
+      "updatedAt": "2024-03-14T12:00:00Z"
     }
   ]
 }
 ```
 
-#### Get User's Own Decks Only
+#### Get User's Own Decks
 ```http
-GET /decks/my-decks
+GET /api/v1/decks/my-decks
 ```
 Headers:
 ```
@@ -256,16 +138,16 @@ Response:
       "isPublic": true,
       "userId": "uuid",
       "cardCount": 10,
-      "createdAt": "2024-03-07T12:00:00.000Z",
-      "updatedAt": "2024-03-07T12:00:00.000Z"
+      "createdAt": "2024-03-14T12:00:00Z",
+      "updatedAt": "2024-03-14T12:00:00Z"
     }
   ]
 }
 ```
 
-#### Get Single Deck
+#### Get Specific Deck
 ```http
-GET /decks/:deckId
+GET /api/v1/decks/:deckId
 ```
 Headers:
 ```
@@ -284,19 +166,19 @@ Response:
     "Cards": [
       {
         "id": "uuid",
-        "question": "Hello",
-        "answer": "Hola"
+        "question": "hello",
+        "answer": "hola"
       }
     ],
-    "createdAt": "2024-03-07T12:00:00.000Z",
-    "updatedAt": "2024-03-07T12:00:00.000Z"
+    "createdAt": "2024-03-14T12:00:00Z",
+    "updatedAt": "2024-03-14T12:00:00Z"
   }
 }
 ```
 
-#### Create Deck
+#### Create New Deck
 ```http
-POST /decks
+POST /api/v1/decks
 ```
 Headers:
 ```
@@ -310,25 +192,10 @@ Request body:
   "isPublic": true
 }
 ```
-Response:
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "title": "Spanish Vocabulary",
-    "description": "Basic Spanish words",
-    "isPublic": true,
-    "userId": "uuid",
-    "createdAt": "2024-03-07T12:00:00.000Z",
-    "updatedAt": "2024-03-07T12:00:00.000Z"
-  }
-}
-```
 
 #### Update Deck
 ```http
-PUT /decks/:deckId
+PUT /api/v1/decks/:deckId
 ```
 Headers:
 ```
@@ -342,271 +209,83 @@ Request body:
   "isPublic": false
 }
 ```
-Response:
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "title": "Updated Spanish Vocabulary",
-    "description": "Updated description",
-    "isPublic": false,
-    "userId": "uuid",
-    "createdAt": "2024-03-07T12:00:00.000Z",
-    "updatedAt": "2024-03-07T12:00:00.000Z"
-  }
-}
-```
 
 #### Delete Deck
 ```http
-DELETE /decks/:deckId
+DELETE /api/v1/decks/:deckId
 ```
 Headers:
 ```
 Authorization: Bearer <your_token>
-```
-Response:
-```json
-{
-  "status": "success",
-  "message": "Deck deleted successfully"
-}
-```
-
-### Cards
-
-#### Get All Cards in Deck
-```http
-GET /decks/:deckId/cards
-```
-Headers:
-```
-Authorization: Bearer <your_token>
-```
-Response:
-```json
-{
-  "status": "success",
-  "data": [
-    {
-      "id": "uuid",
-      "question": "Hello",
-      "answer": "Hola",
-      "deckId": "uuid",
-      "createdAt": "2024-03-07T12:00:00.000Z",
-      "updatedAt": "2024-03-07T12:00:00.000Z"
-    }
-  ]
-}
-```
-
-#### Get Single Card
-```http
-GET /decks/:deckId/cards/:cardId
-```
-Headers:
-```
-Authorization: Bearer <your_token>
-```
-Response:
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "question": "Hello",
-    "answer": "Hola",
-    "deckId": "uuid",
-    "createdAt": "2024-03-07T12:00:00.000Z",
-    "updatedAt": "2024-03-07T12:00:00.000Z"
-  }
-}
-```
-
-#### Create Card
-```http
-POST /decks/:deckId/cards
-```
-Headers:
-```
-Authorization: Bearer <your_token>
-```
-Request body:
-```json
-{
-  "question": "Good morning",
-  "answer": "Buenos días"
-}
-```
-Response:
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "question": "Good morning",
-    "answer": "Buenos días",
-    "deckId": "uuid",
-    "createdAt": "2024-03-07T12:00:00.000Z",
-    "updatedAt": "2024-03-07T12:00:00.000Z"
-  }
-}
-```
-
-#### Update Card
-```http
-PUT /decks/:deckId/cards/:cardId
-```
-Headers:
-```
-Authorization: Bearer <your_token>
-```
-Request body:
-```json
-{
-  "question": "Updated question",
-  "answer": "Updated answer"
-}
-```
-Response:
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "question": "Updated question",
-    "answer": "Updated answer",
-    "deckId": "uuid",
-    "createdAt": "2024-03-07T12:00:00.000Z",
-    "updatedAt": "2024-03-07T12:00:00.000Z"
-  }
-}
-```
-
-#### Delete Card
-```http
-DELETE /decks/:deckId/cards/:cardId
-```
-Headers:
-```
-Authorization: Bearer <your_token>
-```
-Response:
-```json
-{
-  "status": "success",
-  "message": "Card deleted successfully"
-}
-```
-
-### Deck Ratings
-
-#### Get All Ratings for Deck
-```http
-GET /decks/:deckId/ratings
-```
-Headers:
-```
-Authorization: Bearer <your_token>
-```
-Response:
-```json
-{
-  "status": "success",
-  "data": {
-    "ratings": [
-      {
-        "id": "uuid",
-        "isLike": true,
-        "userId": "uuid",
-        "deckId": "uuid",
-        "User": {
-          "id": "uuid",
-          "userName": "johndoe"
-        }
-      }
-    ],
-    "likes": 5,
-    "dislikes": 2,
-    "totalRatings": 7
-  }
-}
-```
-
-#### Get User's Rating
-```http
-GET /decks/:deckId/ratings/my-rating
-```
-Headers:
-```
-Authorization: Bearer <your_token>
-```
-Response:
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "isLike": true,
-    "userId": "uuid",
-    "deckId": "uuid",
-    "createdAt": "2024-03-07T12:00:00.000Z",
-    "updatedAt": "2024-03-07T12:00:00.000Z"
-  }
-}
-```
-
-#### Rate Deck
-```http
-POST /decks/:deckId/ratings
-```
-Headers:
-```
-Authorization: Bearer <your_token>
-```
-Request body:
-```json
-{
-  "isLike": true
-}
-```
-Response:
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "isLike": true,
-    "userId": "uuid",
-    "deckId": "uuid",
-    "createdAt": "2024-03-07T12:00:00.000Z",
-    "updatedAt": "2024-03-07T12:00:00.000Z"
-  }
-}
-```
-
-#### Delete Rating
-```http
-DELETE /decks/:deckId/ratings
-```
-Headers:
-```
-Authorization: Bearer <your_token>
-```
-Response:
-```json
-{
-  "status": "success",
-  "message": "Rating deleted successfully"
-}
 ```
 
 ### User Card Answers
 
-#### Get All Answers for Deck
+#### Get User Answer Statistics
 ```http
-GET /decks/:deckId/answers
+GET /api/v1/decks/answers/stats
+```
+Headers:
+```
+Authorization: Bearer <your_token>
+```
+Query Parameters:
+- `timeRange` (optional): Filter statistics by time range
+  - `day`: Last 24 hours
+  - `week`: Last 7 days
+  - `month`: Last 30 days
+  - `all`: All time (default)
+
+Response:
+```json
+{
+  "status": "success",
+  "data": {
+    "overall": {
+      "totalAnswers": 100,
+      "correctAnswers": 75,
+      "accuracy": 75.0
+    },
+    "byDeck": [
+      {
+        "deckId": "uuid",
+        "deckTitle": "Spanish Vocabulary",
+        "totalAnswers": 50,
+        "correctAnswers": 40,
+        "accuracy": 80.0
+      }
+    ],
+    "dailyProgress": [
+      {
+        "date": "2024-03-14T00:00:00Z",
+        "totalAnswers": 20,
+        "correctAnswers": 15,
+        "accuracy": 75.0
+      }
+    ],
+    "recentAnswers": [
+      {
+        "id": "uuid",
+        "userAnswer": "hola",
+        "isCorrect": true,
+        "createdAt": "2024-03-14T12:00:00Z",
+        "deck": {
+          "id": "uuid",
+          "title": "Spanish Vocabulary"
+        },
+        "card": {
+          "id": "uuid",
+          "question": "hello"
+        }
+      }
+    ]
+  }
+}
+```
+
+#### Get All Answers for a Deck
+```http
+GET /api/v1/decks/answers/deck/:deckId
 ```
 Headers:
 ```
@@ -620,28 +299,50 @@ Response:
     "cards": [
       {
         "id": "uuid",
-        "question": "Hello",
-        "answer": "Hola",
+        "question": "hello",
+        "answer": "hola",
         "UserCardAnswer": {
           "id": "uuid",
-          "userAnswer": "Hola",
-          "isCorrect": true
+          "userAnswer": "hola",
+          "isCorrect": true,
+          "createdAt": "2024-03-14T12:00:00Z"
         }
       }
     ],
     "statistics": {
       "totalCards": 10,
-      "answeredCards": 5,
-      "correctAnswers": 3,
-      "accuracy": 60
+      "answeredCards": 8,
+      "correctAnswers": 6,
+      "accuracy": 75.0
     }
   }
 }
 ```
 
-#### Submit Answer
+#### Get User's Answer for a Specific Card
 ```http
-POST /decks/:deckId/answers/cards/:cardId/answer
+GET /api/v1/decks/answers/deck/:deckId/card/:cardId
+```
+Headers:
+```
+Authorization: Bearer <your_token>
+```
+Response:
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "uuid",
+    "userAnswer": "hola",
+    "isCorrect": true,
+    "createdAt": "2024-03-14T12:00:00Z"
+  }
+}
+```
+
+#### Submit an Answer for a Card
+```http
+POST /api/v1/decks/answers/deck/:deckId/card/:cardId
 ```
 Headers:
 ```
@@ -650,7 +351,7 @@ Authorization: Bearer <your_token>
 Request body:
 ```json
 {
-  "userAnswer": "Hola"
+  "userAnswer": "hola"
 }
 ```
 Response:
@@ -659,31 +360,10 @@ Response:
   "status": "success",
   "data": {
     "id": "uuid",
-    "userAnswer": "Hola",
+    "userAnswer": "hola",
     "isCorrect": true,
-    "correctAnswer": "Hola"
-  }
-}
-```
-
-#### Get User's Answer
-```http
-GET /decks/:deckId/answers/cards/:cardId/answer
-```
-Headers:
-```
-Authorization: Bearer <your_token>
-```
-Response:
-```json
-{
-  "status": "success",
-  "data": {
-    "id": "uuid",
-    "userAnswer": "Hola",
-    "isCorrect": true,
-    "createdAt": "2024-03-07T12:00:00.000Z",
-    "updatedAt": "2024-03-07T12:00:00.000Z"
+    "createdAt": "2024-03-14T12:00:00Z",
+    "correctAnswer": "hola"
   }
 }
 ```
