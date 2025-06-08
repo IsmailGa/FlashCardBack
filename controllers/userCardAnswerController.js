@@ -2,6 +2,8 @@ const db = require("../models");
 const UserCardAnswer = db.UserCardAnswer;
 const Card = db.Card;
 const Deck = db.Deck;
+const { Op } = require("sequelize");
+const sequelize = require("sequelize");
 
 // Submit an answer for a card
 const submitAnswer = async (req, res) => {
@@ -177,8 +179,160 @@ const getDeckAnswers = async (req, res) => {
   }
 };
 
+// Get user's answer statistics and history
+const getUserAnswerStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { timeRange } = req.query; // Optional: 'day', 'week', 'month', 'all'
+
+    // Set date range based on timeRange parameter
+    let dateFilter = {};
+    if (timeRange) {
+      const now = new Date();
+      switch (timeRange) {
+        case 'day':
+          dateFilter = {
+            createdAt: {
+              [Op.gte]: new Date(now.setDate(now.getDate() - 1))
+            }
+          };
+          break;
+        case 'week':
+          dateFilter = {
+            createdAt: {
+              [Op.gte]: new Date(now.setDate(now.getDate() - 7))
+            }
+          };
+          break;
+        case 'month':
+          dateFilter = {
+            createdAt: {
+              [Op.gte]: new Date(now.setMonth(now.getMonth() - 1))
+            }
+          };
+          break;
+      }
+    }
+
+    // Get overall statistics
+    const overallStats = await UserCardAnswer.findAll({
+      where: {
+        userId,
+        ...dateFilter
+      },
+      attributes: [
+        [sequelize.fn('COUNT', sequelize.col('id')), 'totalAnswers'],
+        [sequelize.fn('SUM', sequelize.literal('CASE WHEN "isCorrect" THEN 1 ELSE 0 END')), 'correctAnswers'],
+        [sequelize.fn('AVG', sequelize.literal('CASE WHEN "isCorrect" THEN 1 ELSE 0 END')), 'accuracy']
+      ]
+    });
+
+    // Get deck-wise statistics
+    const deckStats = await UserCardAnswer.findAll({
+      where: {
+        userId,
+        ...dateFilter
+      },
+      include: [{
+        model: Card,
+        include: [{
+          model: Deck,
+          attributes: ['id', 'title']
+        }]
+      }],
+      attributes: [
+        [sequelize.col('Card.Deck.id'), 'deckId'],
+        [sequelize.col('Card.Deck.title'), 'deckTitle'],
+        [sequelize.fn('COUNT', sequelize.col('UserCardAnswer.id')), 'totalAnswers'],
+        [sequelize.fn('SUM', sequelize.literal('CASE WHEN "UserCardAnswer"."isCorrect" THEN 1 ELSE 0 END')), 'correctAnswers'],
+        [sequelize.fn('AVG', sequelize.literal('CASE WHEN "UserCardAnswer"."isCorrect" THEN 1 ELSE 0 END')), 'accuracy']
+      ],
+      group: ['Card.Deck.id', 'Card.Deck.title']
+    });
+
+    // Get daily progress
+    const dailyProgress = await UserCardAnswer.findAll({
+      where: {
+        userId,
+        ...dateFilter
+      },
+      attributes: [
+        [sequelize.fn('date_trunc', 'day', sequelize.col('createdAt')), 'date'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'totalAnswers'],
+        [sequelize.fn('SUM', sequelize.literal('CASE WHEN "isCorrect" THEN 1 ELSE 0 END')), 'correctAnswers'],
+        [sequelize.fn('AVG', sequelize.literal('CASE WHEN "isCorrect" THEN 1 ELSE 0 END')), 'accuracy']
+      ],
+      group: [sequelize.fn('date_trunc', 'day', sequelize.col('createdAt'))],
+      order: [[sequelize.fn('date_trunc', 'day', sequelize.col('createdAt')), 'DESC']]
+    });
+
+    // Get recent answers
+    const recentAnswers = await UserCardAnswer.findAll({
+      where: {
+        userId,
+        ...dateFilter
+      },
+      include: [{
+        model: Card,
+        include: [{
+          model: Deck,
+          attributes: ['id', 'title']
+        }]
+      }],
+      order: [['createdAt', 'DESC']],
+      limit: 10
+    });
+
+    return res.status(200).json({
+      status: "success",
+      data: {
+        overall: {
+          totalAnswers: parseInt(overallStats[0].getDataValue('totalAnswers')) || 0,
+          correctAnswers: parseInt(overallStats[0].getDataValue('correctAnswers')) || 0,
+          accuracy: parseFloat(overallStats[0].getDataValue('accuracy') * 100) || 0
+        },
+        byDeck: deckStats.map(stat => ({
+          deckId: stat.getDataValue('deckId'),
+          deckTitle: stat.getDataValue('deckTitle'),
+          totalAnswers: parseInt(stat.getDataValue('totalAnswers')) || 0,
+          correctAnswers: parseInt(stat.getDataValue('correctAnswers')) || 0,
+          accuracy: parseFloat(stat.getDataValue('accuracy') * 100) || 0
+        })),
+        dailyProgress: dailyProgress.map(day => ({
+          date: day.getDataValue('date'),
+          totalAnswers: parseInt(day.getDataValue('totalAnswers')) || 0,
+          correctAnswers: parseInt(day.getDataValue('correctAnswers')) || 0,
+          accuracy: parseFloat(day.getDataValue('accuracy') * 100) || 0
+        })),
+        recentAnswers: recentAnswers.map(answer => ({
+          id: answer.id,
+          userAnswer: answer.userAnswer,
+          isCorrect: answer.isCorrect,
+          createdAt: answer.createdAt,
+          deck: {
+            id: answer.Card.Deck.id,
+            title: answer.Card.Deck.title
+          },
+          card: {
+            id: answer.Card.id,
+            question: answer.Card.question
+          }
+        }))
+      }
+    });
+  } catch (error) {
+    console.error("Failed to get user answer statistics:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to get user answer statistics",
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   submitAnswer,
   getUserAnswer,
   getDeckAnswers,
+  getUserAnswerStats
 }; 

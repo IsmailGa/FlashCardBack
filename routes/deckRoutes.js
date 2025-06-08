@@ -8,24 +8,31 @@ const {
   getDeck,
   updateDeck,
   deleteDeck,
+  getRecentDecks
 } = require("../controllers/deckController");
 
+// Protected routes
+router.use(verifyToken);
+
+// Get recent decks
+router.get("/recent", getRecentDecks);
+
 // Get all decks (public and user's private decks)
-router.get("/", verifyToken, getUserDecks);
+router.get("/", getUserDecks);
 
 // Get user's own decks only
-router.get("/my-decks", verifyToken, getUserOwnDecks);
+router.get("/my-decks", getUserOwnDecks);
 
 // Get a specific deck
-router.get("/:deckId", verifyToken, getDeck);
+router.get("/:deckId", getDeck);
 
 // Create a new deck
-router.post("/", verifyToken, createDeck);
+router.post("/", createDeck);
 
 // Update a deck
-router.put("/:deckId", verifyToken, updateDeck);
+router.put("/:deckId", updateDeck);
 
 // Delete a deck
-router.delete("/:deckId", verifyToken, deleteDeck);
+router.delete("/:deckId", deleteDeck);
 
 module.exports = router; 
