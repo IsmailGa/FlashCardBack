@@ -127,6 +127,28 @@ Authorization: Bearer <your_token>
 Query Parameters:
 - `query` (required): Search term to match against deck titles and descriptions
 
+Response:
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "id": "uuid",
+      "title": "Spanish Vocabulary",
+      "description": "Basic Spanish words",
+      "isPublic": true,
+      "cardCount": 10,
+      "author": {
+        "id": "uuid",
+        "userName": "johndoe"
+      },
+      "createdAt": "2024-03-14T12:00:00Z",
+      "updatedAt": "2024-03-14T12:00:00Z"
+    }
+  ]
+}
+```
+
 #### Get All Decks (Public and User's Private)
 ```http
 GET /api/v1/decks
