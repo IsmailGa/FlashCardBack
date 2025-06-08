@@ -302,6 +302,10 @@ const searchDecks = async (req, res) => {
           model: Card,
           attributes: ["id"], // Only include card IDs to count them
         },
+        {
+          model: User,
+          attributes: ["id", "userName","fullName"], // Include author's username
+        }
       ],
     });
 
@@ -309,6 +313,11 @@ const searchDecks = async (req, res) => {
     const decksWithCardCount = decks.map(deck => ({
       ...deck.toJSON(),
       cardCount: deck.Cards.length,
+      author: {
+        id: deck.User.id,
+        userName: deck.User.userName,
+        fullName: deck.User.fullName
+      }
     }));
 
     return res.status(200).json({
