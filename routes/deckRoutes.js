@@ -8,7 +8,8 @@ const {
   getDeck,
   updateDeck,
   deleteDeck,
-  getRecentDecks
+  getRecentDecks,
+  searchDecks
 } = require("../controllers/deckController");
 
 // Protected routes
@@ -16,6 +17,9 @@ router.use(verifyToken);
 
 // Get recent decks
 router.get("/recent", getRecentDecks);
+
+// Search decks
+router.get("/search", searchDecks);
 
 // Get all decks (public and user's private decks)
 router.get("/", getUserDecks);

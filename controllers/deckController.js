@@ -273,6 +273,58 @@ const getRecentDecks = async (req, res) => {
   }
 };
 
+// Search decks
+const searchDecks = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { query } = req.query;
+
+    if (!query) {
+      return res.status(400).json({
+        status: "error",
+        message: "Search query is required",
+      });
+    }
+
+    const decks = await Deck.findAll({
+      where: {
+        [Op.or]: [
+          { title: { [Op.iLike]: `%${query}%` } },
+          { description: { [Op.iLike]: `%${query}%` } }
+        ],
+        [Op.or]: [
+          { userId }, // User's own decks
+          { isPublic: true } // Public decks from other users
+        ]
+      },
+      include: [
+        {
+          model: Card,
+          attributes: ["id"], // Only include card IDs to count them
+        },
+      ],
+    });
+
+    // Add card count to each deck
+    const decksWithCardCount = decks.map(deck => ({
+      ...deck.toJSON(),
+      cardCount: deck.Cards.length,
+    }));
+
+    return res.status(200).json({
+      status: "success",
+      data: decksWithCardCount,
+    });
+  } catch (error) {
+    console.error("Failed to search decks:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to search decks",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createDeck,
   getUserDecks,
@@ -281,4 +333,5 @@ module.exports = {
   updateDeck,
   deleteDeck,
   getRecentDecks,
+  searchDecks,
 }; 
