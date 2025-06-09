@@ -341,7 +341,7 @@ Content-Type: application/json
   - 401: Unauthorized
 
 ### Get User Profile
-- **Method**: `GET /auth/:userId`
+- **Method**: `GET /users/:userId`
 - **Headers**: Requires JWT token
 - **Response** (200):
   ```json
