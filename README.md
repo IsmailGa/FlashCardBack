@@ -1,5 +1,158 @@
 # Flash Card API Documentation
 
+## System Overview
+
+### Core Concepts
+
+1. **Users**
+   - Users can register and authenticate using email/password
+   - Each user has a profile with personal information
+   - Users can create decks and study cards
+   - Users can rate decks and track their progress
+
+2. **Decks (Колоды)**
+   - A collection of related flashcards
+   - Can be public or private
+   - Contains metadata like title, description, and language settings
+   - Tracks study progress and statistics
+   - Can be rated by users
+
+3. **Cards (Карточки)**
+   - Individual flashcards within a deck
+   - Contains question and answer
+   - Tracks user's answer history
+   - Used in study sessions
+
+4. **Study Sessions**
+   - Represents a single study period
+   - Tracks progress through deck cards
+   - Records correct/incorrect answers
+   - Calculates session statistics
+   - Updates overall deck progress
+
+5. **User Progress**
+   - Tracks overall progress for each deck
+   - Records mastered cards
+   - Calculates completion percentage
+   - Maintains study history
+
+### System Workflows
+
+#### 1. User Registration and Authentication
+1. User registers with email, password, and personal info
+2. System creates user account and generates tokens
+3. User logs in to get access token
+4. Access token is used for all authenticated requests
+5. Refresh token is used to get new access tokens
+6. User can update profile and change password
+
+#### 2. Deck Management
+1. User creates a new deck with title and description
+2. System creates deck and associates it with user
+3. User can add cards to the deck
+4. User can make deck public or private
+5. Other users can view and study public decks
+6. User can update or delete their decks
+
+#### 3. Card Management
+1. User adds cards to their deck
+2. Each card has a question and answer
+3. Cards can be updated or deleted
+4. System tracks user's answers for each card
+5. Progress is calculated based on correct answers
+
+#### 4. Study Session Flow
+1. User starts a new study session for a deck
+2. System creates session and loads deck cards
+3. For each card:
+   - User sees the question
+   - User provides an answer
+   - System checks if answer is correct
+   - Progress is updated
+4. Session ends when all cards are answered
+5. System calculates session statistics
+6. Overall deck progress is updated
+
+#### 5. Progress Tracking
+1. System tracks:
+   - Total cards in deck
+   - Cards mastered by user
+   - Completion percentage
+   - Study time
+   - Number of sessions
+   - Average accuracy
+2. Progress is updated after each session
+3. User can view their progress statistics
+4. System provides time-based statistics (day/week/month)
+
+#### 6. Rating System
+1. Users can rate decks (like/dislike)
+2. System tracks:
+   - Total ratings
+   - Number of likes/dislikes
+   - Individual user ratings
+3. Users can update or remove their ratings
+4. Ratings are visible to all users
+
+### Data Relationships
+
+```
+User
+ ├── Decks (created by user)
+ │    ├── Cards (in deck)
+ │    │    └── UserCardAnswers (user's answers)
+ │    ├── DeckProgress (user's progress)
+ │    └── DeckRatings (user's ratings)
+ └── StudySessions (user's sessions)
+      └── UserCardAnswers (answers in session)
+```
+
+### Security Features
+
+1. **Authentication**
+   - JWT-based authentication
+   - Access and refresh tokens
+   - Token expiration and refresh
+   - Secure password storage
+
+2. **Authorization**
+   - User can only modify their own resources
+   - Public/private deck access control
+   - Rate limiting on endpoints
+   - Input validation
+
+3. **Data Protection**
+   - Password hashing
+   - Secure token storage
+   - Input sanitization
+   - Error handling
+
+### Best Practices for Implementation
+
+1. **Error Handling**
+   - Use appropriate HTTP status codes
+   - Provide clear error messages
+   - Log errors for debugging
+   - Handle edge cases
+
+2. **Performance**
+   - Implement pagination for large datasets
+   - Use efficient database queries
+   - Cache frequently accessed data
+   - Optimize response payloads
+
+3. **User Experience**
+   - Provide clear feedback
+   - Handle loading states
+   - Implement proper validation
+   - Maintain session state
+
+4. **Development**
+   - Follow RESTful conventions
+   - Use consistent naming
+   - Document all endpoints
+   - Write unit tests
+
 ## Base URL
 ```
 http://localhost:3000/api/v1
@@ -530,59 +683,75 @@ Content-Type: application/json
 
 ## 4. Study Sessions
 
+Study sessions are the core functionality of the flashcard system. They allow users to study cards from a deck in a structured way, track their progress, and improve their learning.
+
 ### Start Session
 - **Method**: `POST /study-sessions/start`
 - **Headers**: Requires JWT token
+- **Description**: 
+  Initiates a new study session for a specific deck. The system will:
+  1. Create a new study session record
+  2. Initialize session statistics (correct/incorrect answers, progress)
+  3. Create or update deck progress tracking
+  4. Return session details and current deck progress
+
 - **Body**:
   ```json
   {
-    "deckId": "deck-uuid"
+    "deckId": "deck-uuid"  // Required: ID of the deck to study
   }
   ```
 - **Response** (201):
   ```json
   {
     "session": {
-      "id": "session-uuid",
-      "userId": "user-uuid",
-      "deckId": "deck-uuid",
-      "totalCards": 10,
-      "correctAnswers": 0,
-      "incorrectAnswers": 0,
-      "currentCardIndex": 0,
-      "sessionProgress": 0,
-      "startTime": "2024-03-15T10:00:00.000Z",
-      "isCompleted": false
+      "id": "session-uuid",        // Unique session identifier
+      "userId": "user-uuid",       // ID of the user studying
+      "deckId": "deck-uuid",       // ID of the deck being studied
+      "totalCards": 10,            // Total number of cards in the deck
+      "correctAnswers": 0,         // Number of correct answers so far
+      "incorrectAnswers": 0,       // Number of incorrect answers so far
+      "currentCardIndex": 0,       // Current position in the deck
+      "sessionProgress": 0,        // Overall progress percentage
+      "startTime": "2024-03-15T10:00:00.000Z",  // When the session started
+      "isCompleted": false         // Session completion status
     },
     "deckProgress": {
-      "id": "progress-uuid",
-      "userId": "user-uuid",
-      "deckId": "deck-uuid",
-      "totalCards": 10,
-      "masteredCards": 0,
-      "completionPercentage": 0,
-      "totalStudyTime": 0,
-      "totalSessions": 1,
-      "averageAccuracy": 0,
-      "lastStudiedAt": "2024-03-15T10:00:00.000Z"
+      "id": "progress-uuid",           // Progress tracking ID
+      "userId": "user-uuid",           // User ID
+      "deckId": "deck-uuid",           // Deck ID
+      "totalCards": 10,                // Total cards in deck
+      "masteredCards": 0,              // Cards mastered by user
+      "completionPercentage": 0,       // Overall deck completion
+      "totalStudyTime": 0,             // Total time spent studying
+      "totalSessions": 1,              // Number of study sessions
+      "averageAccuracy": 0,            // Average correct answers
+      "lastStudiedAt": "2024-03-15T10:00:00.000Z"  // Last study time
     }
   }
   ```
 - **Errors**:
-  - 400: Invalid input data
-  - 401: Unauthorized
+  - 400: Invalid input data (e.g., missing deckId)
+  - 401: Unauthorized (invalid or missing token)
   - 404: Deck not found
   - 500: Server error
 
 ### Update Card Status
 - **Method**: `POST /study-sessions/update-card`
 - **Headers**: Requires JWT token
+- **Description**:
+  Updates the status of a card in the current study session. This endpoint:
+  1. Records the user's answer for the card
+  2. Updates session statistics
+  3. Updates deck progress
+  4. Returns updated session and progress information
+
 - **Body**:
   ```json
   {
-    "sessionId": "session-uuid",
-    "cardId": "card-uuid",
-    "isCorrect": true
+    "sessionId": "session-uuid",  // Required: Current session ID
+    "cardId": "card-uuid",        // Required: ID of the card being answered
+    "isCorrect": true             // Required: Whether the answer was correct
   }
   ```
 - **Response** (200):
@@ -590,21 +759,21 @@ Content-Type: application/json
   {
     "session": {
       "id": "session-uuid",
-      "correctAnswers": 1,
-      "incorrectAnswers": 0,
-      "currentCardIndex": 1,
-      "sessionProgress": 10
+      "correctAnswers": 1,        // Updated count of correct answers
+      "incorrectAnswers": 0,      // Updated count of incorrect answers
+      "currentCardIndex": 1,      // Updated position in deck
+      "sessionProgress": 10       // Updated progress percentage
     },
     "deckProgress": {
       "id": "progress-uuid",
-      "masteredCards": 1,
-      "completionPercentage": 10,
-      "lastStudiedAt": "2024-03-15T10:00:00.000Z"
+      "masteredCards": 1,         // Updated count of mastered cards
+      "completionPercentage": 10, // Updated completion percentage
+      "lastStudiedAt": "2024-03-15T10:00:00.000Z"  // Updated study time
     }
   }
   ```
 - **Errors**:
-  - 400: Invalid input data
+  - 400: Invalid input data (e.g., missing required fields)
   - 401: Unauthorized
   - 404: Session not found
   - 500: Server error
@@ -612,20 +781,27 @@ Content-Type: application/json
 ### End Session
 - **Method**: `POST /study-sessions/end/:sessionId`
 - **Headers**: Requires JWT token
+- **Description**:
+  Finalizes a study session and calculates final statistics. This endpoint:
+  1. Marks the session as completed
+  2. Calculates final session statistics
+  3. Updates overall deck progress
+  4. Returns comprehensive session results
+
 - **Response** (200):
   ```json
   {
     "sessionStats": {
-      "totalCards": 10,
-      "correctAnswers": 8,
-      "incorrectAnswers": 2,
-      "accuracy": 80,
-      "studyTime": 15,
+      "totalCards": 10,           // Total cards in the deck
+      "correctAnswers": 8,        // Final correct answers count
+      "incorrectAnswers": 2,      // Final incorrect answers count
+      "accuracy": 80,             // Final accuracy percentage
+      "studyTime": 15,            // Total study time in minutes
       "deckProgress": {
         "id": "progress-uuid",
-        "totalStudyTime": 15,
-        "totalSessions": 1,
-        "averageAccuracy": 80
+        "totalStudyTime": 15,     // Updated total study time
+        "totalSessions": 1,       // Updated session count
+        "averageAccuracy": 80     // Updated average accuracy
       }
     }
   }
@@ -638,6 +814,15 @@ Content-Type: application/json
 ### Get Current Session
 - **Method**: `GET /study-sessions/current/:deckId`
 - **Headers**: Requires JWT token
+- **Description**:
+  Retrieves the active study session for a specific deck. This endpoint:
+  1. Checks for an active session
+  2. Returns session details including:
+     - Current progress
+     - Answered cards
+     - Session statistics
+     - Card details
+
 - **Response** (200):
   ```json
   {
@@ -652,7 +837,7 @@ Content-Type: application/json
       "sessionProgress": 50,
       "startTime": "2024-03-15T10:00:00.000Z",
       "isCompleted": false,
-      "UserCardAnswers": [
+      "UserCardAnswers": [        // Array of answered cards
         {
           "id": "answer-uuid",
           "cardId": "card-uuid",
@@ -672,6 +857,68 @@ Content-Type: application/json
   - 401: Unauthorized
   - 404: Active session not found
   - 500: Server error
+
+### Study Session Flow Example
+
+Here's a typical flow of a study session:
+
+1. **Start Session**
+   ```http
+   POST /study-sessions/start
+   {
+     "deckId": "deck-uuid"
+   }
+   ```
+   - System creates new session
+   - Returns session ID and initial progress
+
+2. **Study Cards**
+   ```http
+   POST /study-sessions/update-card
+   {
+     "sessionId": "session-uuid",
+     "cardId": "card-uuid",
+     "isCorrect": true
+   }
+   ```
+   - Repeat for each card
+   - System updates progress after each answer
+
+3. **End Session**
+   ```http
+   POST /study-sessions/end/:sessionId
+   ```
+   - System calculates final statistics
+   - Updates overall deck progress
+
+4. **Check Progress**
+   ```http
+   GET /study-sessions/current/:deckId
+   ```
+   - View current session status
+   - Review answered cards
+
+### Best Practices for Study Sessions
+
+1. **Session Management**
+   - Start new session only when previous one is completed
+   - Handle session timeouts appropriately
+   - Implement session recovery for interrupted sessions
+
+2. **Progress Tracking**
+   - Update progress after each card
+   - Calculate statistics in real-time
+   - Maintain accurate study time
+
+3. **Error Handling**
+   - Handle network interruptions
+   - Validate all inputs
+   - Provide clear error messages
+
+4. **Performance**
+   - Optimize database queries
+   - Cache frequently accessed data
+   - Implement proper indexing
 
 ## 5. Card Answers
 
