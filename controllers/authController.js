@@ -309,6 +309,37 @@ const refreshToken = async (req, res) => {
   }
 };
 
+// Get another user's profile
+const getUserProfile = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findOne({
+      where: { id: userId },
+      attributes: ['id', 'userName', 'fullName', 'avatarUrl', 'createdAt'],
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      data: user,
+    });
+  } catch (error) {
+    console.error("Failed to get user profile:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to get user profile",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -316,5 +347,6 @@ module.exports = {
   getCurrentUser,
   updateProfile,
   changePassword,
-  refreshToken
+  refreshToken,
+  getUserProfile,
 };

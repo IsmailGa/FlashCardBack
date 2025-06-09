@@ -9,7 +9,9 @@ const {
   updateDeck,
   deleteDeck,
   getRecentDecks,
-  searchDecks
+  searchDecks,
+  getUserPublicDecks,
+  updateCardProgress
 } = require("../controllers/deckController");
 
 // Protected routes
@@ -21,10 +23,13 @@ router.get("/recent", getRecentDecks);
 // Search decks
 router.get("/search", searchDecks);
 
-// Get all decks (public and user's private decks)
+// Get user's public decks
+router.get("/user/:userId", getUserPublicDecks);
+
+// Get all decks (public and user's private)
 router.get("/", getUserDecks);
 
-// Get user's own decks only
+// Get user's own decks
 router.get("/my-decks", getUserOwnDecks);
 
 // Get a specific deck
@@ -38,5 +43,8 @@ router.put("/:deckId", updateDeck);
 
 // Delete a deck
 router.delete("/:deckId", deleteDeck);
+
+// Update card progress
+router.post("/:deckId/cards/:cardId/progress", updateCardProgress);
 
 module.exports = router; 

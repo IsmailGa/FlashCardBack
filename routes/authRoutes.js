@@ -8,7 +8,8 @@ const {
   getCurrentUser,
   updateProfile,
   changePassword,
-  refreshToken
+  refreshToken,
+  getUserProfile
 } = require("../controllers/authController");
 
 // Public routes
@@ -22,5 +23,6 @@ router.post("/logout", verifyToken, logout);
 router.get("/me", verifyToken, getCurrentUser);
 router.put("/profile", verifyToken, updateProfile);
 router.put("/change-password", verifyToken, changePassword);
+router.get("/:userId", verifyToken, getUserProfile);
 
 module.exports = router;

@@ -1,5 +1,5 @@
 const db = require("../models");
-const { Deck, Card, UserCardAnswer, User } = require("../models");
+const { Deck, Card, UserCardAnswer, User, UserCardProgress } = require("../models");
 const { Op } = require("sequelize");
 const sequelize = require("sequelize");
 
@@ -53,6 +53,10 @@ const getUserDecks = async (req, res) => {
           model: Card,
           attributes: ["id"], // Only include card IDs to count them
         },
+        {
+          model: User,
+          attributes: ["id", "userName", "fullName"],
+        }
       ],
     });
 
@@ -60,6 +64,11 @@ const getUserDecks = async (req, res) => {
     const decksWithCardCount = decks.map(deck => ({
       ...deck.toJSON(),
       cardCount: deck.Cards.length,
+      author: {
+        id: deck.User.id,
+        userName: deck.User.userName,
+        fullName: deck.User.fullName
+      }
     }));
 
     return res.status(200).json({
@@ -334,6 +343,140 @@ const searchDecks = async (req, res) => {
   }
 };
 
+// Get another user's public decks
+const getUserPublicDecks = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Verify that the user exists
+    const user = await User.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    const decks = await Deck.findAll({
+      where: { 
+        userId,
+        isPublic: true 
+      },
+      include: [
+        {
+          model: Card,
+          attributes: ["id"], // Only include card IDs to count them
+        },
+        {
+          model: User,
+          attributes: ["id", "userName", "fullName"],
+        }
+      ],
+    });
+
+    // Add card count to each deck
+    const decksWithCardCount = decks.map(deck => ({
+      ...deck.toJSON(),
+      cardCount: deck.Cards.length,
+      author: {
+        id: deck.User.id,
+        userName: deck.User.userName,
+        fullName: deck.User.fullName
+      }
+    }));
+
+    return res.status(200).json({
+      status: "success",
+      data: decksWithCardCount,
+    });
+  } catch (error) {
+    console.error("Failed to get user's public decks:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to get user's public decks",
+      error: error.message,
+    });
+  }
+};
+
+// Update card progress
+const updateCardProgress = async (req, res) => {
+  try {
+    const { deckId, cardId } = req.params;
+    const { isCorrect } = req.body;
+    const userId = req.user.id;
+
+    // Verify that the deck exists and belongs to the user
+    const deck = await Deck.findOne({
+      where: { id: deckId },
+    });
+
+    if (!deck) {
+      return res.status(404).json({
+        status: "error",
+        message: "Deck not found",
+      });
+    }
+
+    // Verify that the card exists in the deck
+    const card = await Card.findOne({
+      where: { id: cardId, deckId },
+    });
+
+    if (!card) {
+      return res.status(404).json({
+        status: "error",
+        message: "Card not found",
+      });
+    }
+
+    // Find or create user's card progress
+    const [progress, created] = await UserCardProgress.findOrCreate({
+      where: { userId, cardId },
+      defaults: {
+        status: isCorrect ? 'know' : 'learning',
+        nextReview: new Date(Date.now() + (isCorrect ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000)), // 7 days for know, 1 day for learning
+        reviewCount: 1
+      }
+    });
+
+    if (!created) {
+      // Update existing progress
+      const newReviewCount = progress.reviewCount + 1;
+      const newStatus = isCorrect ? 'know' : 'learning';
+      const nextReviewInterval = isCorrect ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000; // 7 days for know, 1 day for learning
+
+      await progress.update({
+        status: newStatus,
+        nextReview: new Date(Date.now() + nextReviewInterval),
+        reviewCount: newReviewCount
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      data: {
+        ...progress.toJSON(),
+        card: {
+          id: card.id,
+          question: card.question,
+          answer: card.answer
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Failed to update card progress:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to update card progress",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createDeck,
   getUserDecks,
@@ -343,4 +486,6 @@ module.exports = {
   deleteDeck,
   getRecentDecks,
   searchDecks,
+  getUserPublicDecks,
+  updateCardProgress,
 }; 
