@@ -8,6 +8,7 @@ const deckRoutes = require("./routes/deckRoutes");
 const cardRoutes = require("./routes/cardRoutes");
 const deckRatingRoutes = require("./routes/deckRatingRoutes");
 const userCardAnswerRoutes = require("./routes/userCardAnswerRoutes");
+const studySessionRoutes = require("./routes/studysession.routes");
 
 const app = express();
 
@@ -37,6 +38,9 @@ app.use("/api/v1/decks/:deckId/ratings", deckRatingRoutes);
 
 // User card answer routes (nested under decks)
 app.use("/api/v1/decks/:deckId/answers", userCardAnswerRoutes);
+
+// Study session routes
+app.use("/api/v1/study-sessions", studySessionRoutes);
 
 const startServer = async () => {
   try {
