@@ -6,7 +6,7 @@ http://localhost:3000/api/v1
 ```
 
 ## Authentication
-All endpoints except login and register require a valid JWT token in the Authorization header.
+All endpoints except login, register, and refresh-token require a valid JWT token in the Authorization header.
 
 ### Register
 - **Method**: `POST /auth/register`
@@ -71,6 +71,129 @@ All endpoints except login and register require a valid JWT token in the Authori
   - 400: Invalid credentials
   - 401: Authentication failed
 
+### Refresh Token
+- **Method**: `POST /auth/refresh-token`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_refresh_token>
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "token": "new-jwt-token",
+      "refreshToken": "new-refresh-token"
+    }
+  }
+  ```
+- **Error Responses**:
+  - 401: Invalid refresh token
+
+### Validate Token
+- **Method**: `POST /auth/validate-token`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "valid": true
+    }
+  }
+  ```
+- **Error Responses**:
+  - 401: Invalid token
+
+### Get Current User
+- **Method**: `GET /auth/me`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "user-uuid",
+      "userName": "johndoe",
+      "fullName": "John Doe",
+      "email": "john@example.com",
+      "avatarUrl": "https://example.com/avatar.jpg",
+      "createdAt": "2024-03-15T10:00:00.000Z"
+    }
+  }
+  ```
+- **Error Responses**:
+  - 401: Unauthorized
+
+### Update Profile
+- **Method**: `PUT /auth/profile`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  Content-Type: application/json
+  ```
+- **Request Body**:
+  ```json
+  {
+    "fullName": "John Updated",
+    "userName": "johnupdated",
+    "email": "john.updated@example.com",
+    "avatarUrl": "https://example.com/new-avatar.jpg"
+  }
+  ```
+- **Response**: Same as Get Current User
+- **Error Responses**:
+  - 400: Invalid input data
+  - 401: Unauthorized
+  - 409: Username or email already exists
+
+### Change Password
+- **Method**: `PUT /auth/change-password`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  Content-Type: application/json
+  ```
+- **Request Body**:
+  ```json
+  {
+    "currentPassword": "oldpassword",
+    "newPassword": "newpassword"
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "message": "Password updated successfully"
+  }
+  ```
+- **Error Responses**:
+  - 400: Invalid current password
+  - 401: Unauthorized
+
+### Logout
+- **Method**: `POST /auth/logout`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "message": "Logged out successfully"
+  }
+  ```
+- **Error Responses**:
+  - 401: Unauthorized
+
 ### Get User Profile
 - **Method**: `GET /auth/:userId`
 - **Headers**: 
@@ -95,6 +218,33 @@ All endpoints except login and register require a valid JWT token in the Authori
   - 401: Unauthorized
 
 ## Decks
+
+### Get Recent Decks
+- **Method**: `GET /decks/recent`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  ```
+- **Query Parameters**:
+  - `limit` (optional): Number of recent decks to return (default: 5)
+- **Response**: Same as Get All Decks
+- **Error Responses**:
+  - 401: Unauthorized
+  - 500: Server error
+
+### Search Decks
+- **Method**: `GET /decks/search`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  ```
+- **Query Parameters**:
+  - `query` (required): Search term to match against deck titles and descriptions
+- **Response**: Same as Get All Decks
+- **Error Responses**:
+  - 400: Missing search query
+  - 401: Unauthorized
+  - 500: Server error
 
 ### Get All Decks (Including Author Info)
 - **Method**: `GET /decks`
@@ -273,6 +423,117 @@ All endpoints except login and register require a valid JWT token in the Authori
   - 401: Unauthorized
   - 500: Server error
 
+## Cards
+
+### Get All Cards in a Deck
+- **Method**: `GET /decks/:deckId/cards`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": [
+      {
+        "id": "card-uuid",
+        "question": "What is hello in Spanish?",
+        "answer": "Hola"
+      }
+    ]
+  }
+  ```
+- **Error Responses**:
+  - 404: Deck not found
+  - 401: Unauthorized
+  - 500: Server error
+
+### Get Single Card
+- **Method**: `GET /decks/:deckId/cards/:cardId`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "card-uuid",
+      "question": "What is hello in Spanish?",
+      "answer": "Hola"
+    }
+  }
+  ```
+- **Error Responses**:
+  - 404: Card not found
+  - 401: Unauthorized
+  - 500: Server error
+
+### Create Card
+- **Method**: `POST /decks/:deckId/cards`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  Content-Type: application/json
+  ```
+- **Request Body**:
+  ```json
+  {
+    "question": "What is good morning in Spanish?",
+    "answer": "Buenos días"
+  }
+  ```
+- **Response**: Same as Get Single Card
+- **Error Responses**:
+  - 404: Deck not found
+  - 403: Not authorized to add cards to this deck
+  - 400: Invalid input data
+  - 401: Unauthorized
+  - 500: Server error
+
+### Update Card
+- **Method**: `PUT /decks/:deckId/cards/:cardId`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  Content-Type: application/json
+  ```
+- **Request Body**:
+  ```json
+  {
+    "question": "Updated question",
+    "answer": "Updated answer"
+  }
+  ```
+- **Response**: Same as Get Single Card
+- **Error Responses**:
+  - 404: Card not found
+  - 403: Not authorized to update this card
+  - 400: Invalid input data
+  - 401: Unauthorized
+  - 500: Server error
+
+### Delete Card
+- **Method**: `DELETE /decks/:deckId/cards/:cardId`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "message": "Card deleted successfully"
+  }
+  ```
+- **Error Responses**:
+  - 404: Card not found
+  - 403: Not authorized to delete this card
+  - 401: Unauthorized
+  - 500: Server error
+
 ## Card Progress Tracking
 
 ### Update Card Progress
@@ -350,6 +611,92 @@ All endpoints except login and register require a valid JWT token in the Authori
   ```
 - **Error Responses**:
   - 404: Deck not found
+  - 401: Unauthorized
+  - 500: Server error
+
+## Deck Ratings
+
+### Get All Ratings for a Deck
+- **Method**: `GET /decks/:deckId/ratings`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "ratings": [
+        {
+          "id": "rating-uuid",
+          "userId": "user-uuid",
+          "isLike": true,
+          "user": {
+            "id": "user-uuid",
+            "userName": "johndoe",
+            "fullName": "John Doe"
+          }
+        }
+      ],
+      "summary": {
+        "totalRatings": 10,
+        "likes": 8,
+        "dislikes": 2
+      }
+    }
+  }
+  ```
+- **Error Responses**:
+  - 404: Deck not found
+  - 401: Unauthorized
+  - 500: Server error
+
+### Rate a Deck
+- **Method**: `POST /decks/:deckId/ratings`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  Content-Type: application/json
+  ```
+- **Request Body**:
+  ```json
+  {
+    "isLike": true  // true for like, false for dislike
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "rating-uuid",
+      "userId": "user-uuid",
+      "isLike": true
+    }
+  }
+  ```
+- **Error Responses**:
+  - 404: Deck not found
+  - 400: Invalid input data
+  - 401: Unauthorized
+  - 500: Server error
+
+### Delete User's Rating
+- **Method**: `DELETE /decks/:deckId/ratings`
+- **Headers**: 
+  ```
+  Authorization: Bearer <your_token>
+  ```
+- **Response**:
+  ```json
+  {
+    "status": "success",
+    "message": "Rating deleted successfully"
+  }
+  ```
+- **Error Responses**:
+  - 404: Rating not found
   - 401: Unauthorized
   - 500: Server error
 
