@@ -8,16 +8,20 @@ const deckRoutes = require("./routes/deckRoutes");
 const cardRoutes = require("./routes/cardRoutes");
 const deckRatingRoutes = require("./routes/deckRatingRoutes");
 const userCardAnswerRoutes = require("./routes/userCardAnswerRoutes");
+const studySessionRoutes = require("./routes/studysession.routes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173', // Replace with your frontend URL
-  credentials: true // This is important for cookies
-}));
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    credentials: true,
+  })
+);
 
 app.get("/", (req, res) => {
   res.send("Welcome to the API!");
@@ -37,6 +41,11 @@ app.use("/api/v1/decks/:deckId/ratings", deckRatingRoutes);
 
 // User card answer routes (nested under decks)
 app.use("/api/v1/decks/:deckId/answers", userCardAnswerRoutes);
+
+app.use("/api/v1/users", userRoutes);
+
+// Study session routes
+app.use("/api/v1/study-sessions", studySessionRoutes);
 
 const startServer = async () => {
   try {

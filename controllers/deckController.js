@@ -1,5 +1,11 @@
 const db = require("../models");
-const { Deck, Card, UserCardAnswer, User, UserCardProgress } = require("../models");
+const {
+  Deck,
+  Card,
+  UserCardAnswer,
+  User,
+  UserCardProgress,
+} = require("../models");
 const { Op } = require("sequelize");
 const sequelize = require("sequelize");
 
@@ -45,8 +51,8 @@ const getUserDecks = async (req, res) => {
       where: {
         [db.Sequelize.Op.or]: [
           { userId }, // User's own decks
-          { isPublic: true } // Public decks from other users
-        ]
+          { isPublic: true }, // Public decks from other users
+        ],
       },
       include: [
         {
@@ -56,19 +62,19 @@ const getUserDecks = async (req, res) => {
         {
           model: User,
           attributes: ["id", "userName", "fullName"],
-        }
+        },
       ],
     });
 
     // Add card count to each deck
-    const decksWithCardCount = decks.map(deck => ({
+    const decksWithCardCount = decks.map((deck) => ({
       ...deck.toJSON(),
       cardCount: deck.Cards.length,
       author: {
         id: deck.User.id,
         userName: deck.User.userName,
-        fullName: deck.User.fullName
-      }
+        fullName: deck.User.fullName,
+      },
     }));
 
     return res.status(200).json({
@@ -100,7 +106,7 @@ const getUserOwnDecks = async (req, res) => {
     });
 
     // Add card count to each deck
-    const decksWithCardCount = decks.map(deck => ({
+    const decksWithCardCount = decks.map((deck) => ({
       ...deck.toJSON(),
       cardCount: deck.Cards.length,
     }));
@@ -131,6 +137,10 @@ const getDeck = async (req, res) => {
         {
           model: Card,
           attributes: ["id", "question", "answer"],
+        },
+        {
+          model: User,
+          attributes: ["id", "fullName", "userName"],
         },
       ],
     });
@@ -243,31 +253,34 @@ const getRecentDecks = async (req, res) => {
               model: UserCardAnswer,
               where: { userId },
               required: true,
-              attributes: ['createdAt'],
+              attributes: ["createdAt"],
             },
           ],
           required: true,
         },
       ],
       attributes: [
-        'id',
-        'title',
-        'description',
-        'createdAt',
-        'updatedAt',
-        [sequelize.fn('MAX', sequelize.col('Cards.UserCardAnswers.createdAt')), 'lastPlayedAt'],
+        "id",
+        "title",
+        "description",
+        "createdAt",
+        "updatedAt",
+        [
+          sequelize.fn("MAX", sequelize.col("Cards.UserCardAnswers.createdAt")),
+          "lastPlayedAt",
+        ],
       ],
-      group: ['Deck.id'],
-      order: [[sequelize.literal('lastPlayedAt'), 'DESC']],
+      group: ["Deck.id"],
+      order: [[sequelize.literal("lastPlayedAt"), "DESC"]],
       limit,
     });
 
     // Format the response
-    const formattedDecks = recentDecks.map(deck => ({
+    const formattedDecks = recentDecks.map((deck) => ({
       id: deck.id,
       title: deck.title,
       description: deck.description,
-      lastPlayedAt: deck.getDataValue('lastPlayedAt'),
+      lastPlayedAt: deck.getDataValue("lastPlayedAt"),
       createdAt: deck.createdAt,
       updatedAt: deck.updatedAt,
     }));
@@ -299,12 +312,12 @@ const searchDecks = async (req, res) => {
       where: {
         [Op.or]: [
           { title: { [Op.iLike]: `%${query}%` } },
-          { description: { [Op.iLike]: `%${query}%` } }
+          { description: { [Op.iLike]: `%${query}%` } },
         ],
         [Op.or]: [
           { userId }, // User's own decks
-          { isPublic: true } // Public decks from other users
-        ]
+          { isPublic: true }, // Public decks from other users
+        ],
       },
       include: [
         {
@@ -313,20 +326,20 @@ const searchDecks = async (req, res) => {
         },
         {
           model: User,
-          attributes: ["id", "userName","fullName"], // Include author's username
-        }
+          attributes: ["id", "userName", "fullName"], // Include author's username
+        },
       ],
     });
 
     // Add card count to each deck
-    const decksWithCardCount = decks.map(deck => ({
+    const decksWithCardCount = decks.map((deck) => ({
       ...deck.toJSON(),
       cardCount: deck.Cards.length,
       author: {
         id: deck.User.id,
         userName: deck.User.userName,
-        fullName: deck.User.fullName
-      }
+        fullName: deck.User.fullName,
+      },
     }));
 
     return res.status(200).json({
@@ -361,9 +374,9 @@ const getUserPublicDecks = async (req, res) => {
     }
 
     const decks = await Deck.findAll({
-      where: { 
+      where: {
         userId,
-        isPublic: true 
+        isPublic: true,
       },
       include: [
         {
@@ -373,19 +386,19 @@ const getUserPublicDecks = async (req, res) => {
         {
           model: User,
           attributes: ["id", "userName", "fullName"],
-        }
+        },
       ],
     });
 
     // Add card count to each deck
-    const decksWithCardCount = decks.map(deck => ({
+    const decksWithCardCount = decks.map((deck) => ({
       ...deck.toJSON(),
       cardCount: deck.Cards.length,
       author: {
         id: deck.User.id,
         userName: deck.User.userName,
-        fullName: deck.User.fullName
-      }
+        fullName: deck.User.fullName,
+      },
     }));
 
     return res.status(200).json({
@@ -437,22 +450,27 @@ const updateCardProgress = async (req, res) => {
     const [progress, created] = await UserCardProgress.findOrCreate({
       where: { userId, cardId },
       defaults: {
-        status: isCorrect ? 'know' : 'learning',
-        nextReview: new Date(Date.now() + (isCorrect ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000)), // 7 days for know, 1 day for learning
-        reviewCount: 1
-      }
+        status: isCorrect ? "know" : "learning",
+        nextReview: new Date(
+          Date.now() +
+            (isCorrect ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000)
+        ), // 7 days for know, 1 day for learning
+        reviewCount: 1,
+      },
     });
 
     if (!created) {
       // Update existing progress
       const newReviewCount = progress.reviewCount + 1;
-      const newStatus = isCorrect ? 'know' : 'learning';
-      const nextReviewInterval = isCorrect ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000; // 7 days for know, 1 day for learning
+      const newStatus = isCorrect ? "know" : "learning";
+      const nextReviewInterval = isCorrect
+        ? 7 * 24 * 60 * 60 * 1000
+        : 24 * 60 * 60 * 1000; // 7 days for know, 1 day for learning
 
       await progress.update({
         status: newStatus,
         nextReview: new Date(Date.now() + nextReviewInterval),
-        reviewCount: newReviewCount
+        reviewCount: newReviewCount,
       });
     }
 
@@ -463,9 +481,9 @@ const updateCardProgress = async (req, res) => {
         card: {
           id: card.id,
           question: card.question,
-          answer: card.answer
-        }
-      }
+          answer: card.answer,
+        },
+      },
     });
   } catch (error) {
     console.error("Failed to update card progress:", error);
@@ -488,4 +506,4 @@ module.exports = {
   searchDecks,
   getUserPublicDecks,
   updateCardProgress,
-}; 
+};
