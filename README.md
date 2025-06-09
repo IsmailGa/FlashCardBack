@@ -205,7 +205,330 @@ Content-Type: application/json
   - 401: Unauthorized
   - 404: User not found
 
-## 2. Study Sessions
+## 2. Decks Management
+
+### Create Deck
+- **Method**: `POST /decks`
+- **Headers**: Requires JWT token
+- **Body**:
+  ```json
+  {
+    "title": "My Deck",
+    "description": "Description of my deck",
+    "isPublic": false
+  }
+  ```
+- **Response** (201):
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "deck-uuid",
+      "title": "My Deck",
+      "description": "Description of my deck",
+      "isPublic": false,
+      "userId": "user-uuid",
+      "createdAt": "2024-03-15T10:00:00.000Z"
+    }
+  }
+  ```
+- **Errors**:
+  - 400: Missing required fields
+  - 401: Unauthorized
+  - 500: Server error
+
+### Get All Decks
+- **Method**: `GET /decks`
+- **Headers**: Requires JWT token
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": [
+      {
+        "id": "deck-uuid",
+        "title": "My Deck",
+        "description": "Description",
+        "isPublic": false,
+        "cardCount": 10,
+        "author": {
+          "id": "user-uuid",
+          "userName": "johndoe",
+          "fullName": "John Doe"
+        }
+      }
+    ]
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 500: Server error
+
+### Get User's Own Decks
+- **Method**: `GET /decks/own`
+- **Headers**: Requires JWT token
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": [
+      {
+        "id": "deck-uuid",
+        "title": "My Deck",
+        "description": "Description",
+        "isPublic": false,
+        "cardCount": 10
+      }
+    ]
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 500: Server error
+
+### Get Single Deck
+- **Method**: `GET /decks/:deckId`
+- **Headers**: Requires JWT token
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "deck-uuid",
+      "title": "My Deck",
+      "description": "Description",
+      "isPublic": false,
+      "Cards": [
+        {
+          "id": "card-uuid",
+          "question": "Question?",
+          "answer": "Answer"
+        }
+      ],
+      "User": {
+        "id": "user-uuid",
+        "fullName": "John Doe",
+        "userName": "johndoe"
+      }
+    }
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 404: Deck not found
+  - 500: Server error
+
+### Update Deck
+- **Method**: `PUT /decks/:deckId`
+- **Headers**: Requires JWT token
+- **Body**:
+  ```json
+  {
+    "name": "Updated Deck",
+    "sourceLanguage": "en",
+    "targetLanguage": "es"
+  }
+  ```
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "deck-uuid",
+      "name": "Updated Deck",
+      "sourceLanguage": "en",
+      "targetLanguage": "es"
+    }
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 404: Deck not found
+  - 500: Server error
+
+### Delete Deck
+- **Method**: `DELETE /decks/:deckId`
+- **Headers**: Requires JWT token
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "message": "Deck deleted successfully"
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 404: Deck not found
+  - 500: Server error
+
+### Get Recent Decks
+- **Method**: `GET /decks/recent`
+- **Headers**: Requires JWT token
+- **Query Parameters**:
+  - `limit`: Number of decks to return (default: 5)
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": [
+      {
+        "id": "deck-uuid",
+        "title": "Recent Deck",
+        "description": "Description",
+        "lastStudiedAt": "2024-03-15T10:00:00.000Z"
+      }
+    ]
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 500: Server error
+
+### Search Decks
+- **Method**: `GET /decks/search`
+- **Headers**: Requires JWT token
+- **Query Parameters**:
+  - `query`: Search term
+  - `page`: Page number (default: 1)
+  - `limit`: Items per page (default: 10)
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "decks": [
+        {
+          "id": "deck-uuid",
+          "title": "Found Deck",
+          "description": "Description",
+          "author": {
+            "id": "user-uuid",
+            "userName": "johndoe"
+          }
+        }
+      ],
+      "total": 1,
+      "page": 1,
+      "limit": 10
+    }
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 500: Server error
+
+## 3. Cards Management
+
+### Create Card
+- **Method**: `POST /decks/:deckId/cards`
+- **Headers**: Requires JWT token
+- **Body**:
+  ```json
+  {
+    "question": "What is...?",
+    "answer": "It is..."
+  }
+  ```
+- **Response** (201):
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "card-uuid",
+      "question": "What is...?",
+      "answer": "It is...",
+      "deckId": "deck-uuid"
+    }
+  }
+  ```
+- **Errors**:
+  - 400: Missing required fields
+  - 401: Unauthorized
+  - 404: Deck not found
+  - 500: Server error
+
+### Get Deck Cards
+- **Method**: `GET /decks/:deckId/cards`
+- **Headers**: Requires JWT token
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": [
+      {
+        "id": "card-uuid",
+        "question": "What is...?",
+        "answer": "It is..."
+      }
+    ]
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 404: Deck not found
+  - 500: Server error
+
+### Get Single Card
+- **Method**: `GET /decks/:deckId/cards/:cardId`
+- **Headers**: Requires JWT token
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "card-uuid",
+      "question": "What is...?",
+      "answer": "It is..."
+    }
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 404: Card not found
+  - 500: Server error
+
+### Update Card
+- **Method**: `PUT /decks/:deckId/cards/:cardId`
+- **Headers**: Requires JWT token
+- **Body**:
+  ```json
+  {
+    "question": "Updated question?",
+    "answer": "Updated answer"
+  }
+  ```
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "card-uuid",
+      "question": "Updated question?",
+      "answer": "Updated answer"
+    }
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 404: Card not found
+  - 500: Server error
+
+### Delete Card
+- **Method**: `DELETE /decks/:deckId/cards/:cardId`
+- **Headers**: Requires JWT token
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "message": "Card deleted successfully"
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 404: Card not found
+  - 500: Server error
+
+## 4. Study Sessions
 
 ### Start Session
 - **Method**: `POST /study-sessions/start`
@@ -249,6 +572,7 @@ Content-Type: application/json
   - 400: Invalid input data
   - 401: Unauthorized
   - 404: Deck not found
+  - 500: Server error
 
 ### Update Card Status
 - **Method**: `POST /study-sessions/update-card`
@@ -283,6 +607,7 @@ Content-Type: application/json
   - 400: Invalid input data
   - 401: Unauthorized
   - 404: Session not found
+  - 500: Server error
 
 ### End Session
 - **Method**: `POST /study-sessions/end/:sessionId`
@@ -308,6 +633,7 @@ Content-Type: application/json
 - **Errors**:
   - 401: Unauthorized
   - 404: Session not found
+  - 500: Server error
 
 ### Get Current Session
 - **Method**: `GET /study-sessions/current/:deckId`
@@ -345,6 +671,219 @@ Content-Type: application/json
 - **Errors**:
   - 401: Unauthorized
   - 404: Active session not found
+  - 500: Server error
+
+## 5. Card Answers
+
+### Submit Answer
+- **Method**: `POST /decks/:deckId/cards/:cardId/answers`
+- **Headers**: Requires JWT token
+- **Body**:
+  ```json
+  {
+    "userAnswer": "User's answer"
+  }
+  ```
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "answer-uuid",
+      "userId": "user-uuid",
+      "cardId": "card-uuid",
+      "userAnswer": "User's answer",
+      "isCorrect": true,
+      "correctAnswer": "Correct answer"
+    }
+  }
+  ```
+- **Errors**:
+  - 400: Missing user answer
+  - 401: Unauthorized
+  - 404: Card not found
+  - 500: Server error
+
+### Get User's Answer
+- **Method**: `GET /decks/:deckId/cards/:cardId/answers`
+- **Headers**: Requires JWT token
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "answer-uuid",
+      "userId": "user-uuid",
+      "cardId": "card-uuid",
+      "userAnswer": "User's answer",
+      "isCorrect": true,
+      "createdAt": "2024-03-15T10:00:00.000Z"
+    }
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 404: Card not found
+  - 500: Server error
+
+### Get Deck Answers
+- **Method**: `GET /decks/:deckId/answers`
+- **Headers**: Requires JWT token
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "cards": [
+        {
+          "id": "card-uuid",
+          "question": "What is...?",
+          "answer": "It is...",
+          "UserCardAnswer": {
+            "id": "answer-uuid",
+            "userAnswer": "User's answer",
+            "isCorrect": true
+          }
+        }
+      ],
+      "statistics": {
+        "totalCards": 10,
+        "answeredCards": 5,
+        "correctAnswers": 4,
+        "accuracy": 80
+      }
+    }
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 404: Deck not found
+  - 500: Server error
+
+### Get User Answer Statistics
+- **Method**: `GET /answers/stats`
+- **Headers**: Requires JWT token
+- **Query Parameters**:
+  - `timeRange`: 'day', 'week', 'month', 'all' (optional)
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "overallStats": {
+        "totalAnswers": 100,
+        "correctAnswers": 80,
+        "accuracy": 80
+      },
+      "deckStats": [
+        {
+          "deckId": "deck-uuid",
+          "deckTitle": "My Deck",
+          "totalAnswers": 50,
+          "correctAnswers": 40,
+          "accuracy": 80
+        }
+      ]
+    }
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 500: Server error
+
+## 6. Deck Ratings
+
+### Rate Deck
+- **Method**: `POST /decks/:deckId/ratings`
+- **Headers**: Requires JWT token
+- **Body**:
+  ```json
+  {
+    "isLike": true
+  }
+  ```
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "rating-uuid",
+      "userId": "user-uuid",
+      "deckId": "deck-uuid",
+      "isLike": true
+    }
+  }
+  ```
+- **Errors**:
+  - 400: Invalid rating value
+  - 401: Unauthorized
+  - 404: Deck not found
+  - 500: Server error
+
+### Get Deck Ratings
+- **Method**: `GET /decks/:deckId/ratings`
+- **Headers**: Requires JWT token
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "ratings": [
+        {
+          "id": "rating-uuid",
+          "userId": "user-uuid",
+          "isLike": true,
+          "User": {
+            "id": "user-uuid",
+            "userName": "johndoe"
+          }
+        }
+      ],
+      "likes": 10,
+      "dislikes": 2,
+      "totalRatings": 12
+    }
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 404: Deck not found
+  - 500: Server error
+
+### Get User's Rating
+- **Method**: `GET /decks/:deckId/ratings/user`
+- **Headers**: Requires JWT token
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "data": {
+      "id": "rating-uuid",
+      "userId": "user-uuid",
+      "deckId": "deck-uuid",
+      "isLike": true
+    }
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 404: Deck not found
+  - 500: Server error
+
+### Delete Rating
+- **Method**: `DELETE /decks/:deckId/ratings`
+- **Headers**: Requires JWT token
+- **Response** (200):
+  ```json
+  {
+    "status": "success",
+    "message": "Rating deleted successfully"
+  }
+  ```
+- **Errors**:
+  - 401: Unauthorized
+  - 404: Rating not found
+  - 500: Server error
 
 ## Error Responses
 
