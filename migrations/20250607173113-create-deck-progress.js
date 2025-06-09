@@ -2,7 +2,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('DeckProgress', {
+    await queryInterface.createTable('DeckProgresses', {
       id: {
         allowNull: false,
         primaryKey: true,
@@ -71,6 +71,6 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable('DeckProgress');
+    await queryInterface.dropTable('DeckProgresses');
   }
 }; 

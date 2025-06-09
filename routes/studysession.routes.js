@@ -1,21 +1,21 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const studySessionController = require('../controllers/studysession.controller');
-const authMiddleware = require('../middleware/auth.middleware');
+const studySessionController = require("../controllers/studysession.controller");
+const { verifyToken } = require("../middleware/authMiddleware");
 
 // Все маршруты требуют аутентификации
-router.use(authMiddleware);
+router.use(verifyToken);
 
 // Начать новую сессию изучения
-router.post('/start', studySessionController.startSession);
+router.post("/start", studySessionController.startSession);
 
 // Обновить статус карточки
-router.post('/update-card', studySessionController.updateCardStatus);
+router.post("/update-card", studySessionController.updateCardStatus);
 
 // Завершить сессию
-router.post('/end/:sessionId', studySessionController.endSession);
+router.post("/end/:sessionId", studySessionController.endSession);
 
 // Получить текущую сессию
-router.get('/current/:userId/:deckId', studySessionController.getCurrentSession);
+router.get("/current/:deckId", studySessionController.getCurrentSession);
 
-module.exports = router; 
+module.exports = router;
