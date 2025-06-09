@@ -730,6 +730,114 @@ The system tracks your learning progress with a simple two-state system:
    - Progress is saved per user-card combination
    - Review schedules are personalized for each user
 
+6. **Updating Progress with Multiple Attempts**:
+   You can update your progress multiple times for the same deck. For example, if you got 5 out of 10 cards correct in your first attempt, and then 8 out of 10 in your second attempt:
+
+   a. **First Attempt** (5 out of 10 correct):
+   ```javascript
+   // For each card, make a request to update progress
+   fetch('/api/v1/decks/123/cards/456/progress', {
+     method: 'POST',
+     headers: {
+       'Authorization': 'Bearer your-token',
+       'Content-Type': 'application/json'
+     },
+     body: JSON.stringify({
+       "isCorrect": true  // for correct answers
+     })
+   });
+   // Response for a correct answer:
+   {
+     "status": "success",
+     "data": {
+       "id": "progress-uuid",
+       "userId": "user-uuid",
+       "cardId": "card-uuid",
+       "status": "know",
+       "nextReview": "2024-03-22T10:00:00.000Z", // 7 days later
+       "reviewCount": 1,
+       "card": {
+         "id": "card-uuid",
+         "question": "What is hello in Spanish?",
+         "answer": "Hola"
+       }
+     }
+   }
+   ```
+
+   b. **Second Attempt** (8 out of 10 correct):
+   ```javascript
+   // Make the same requests again for each card
+   fetch('/api/v1/decks/123/cards/456/progress', {
+     method: 'POST',
+     headers: {
+       'Authorization': 'Bearer your-token',
+       'Content-Type': 'application/json'
+     },
+     body: JSON.stringify({
+       "isCorrect": false  // for incorrect answers
+     })
+   });
+   // Response for an incorrect answer:
+   {
+     "status": "success",
+     "data": {
+       "id": "progress-uuid",
+       "userId": "user-uuid",
+       "cardId": "card-uuid",
+       "status": "learning", // Changed to learning
+       "nextReview": "2024-03-16T10:00:00.000Z", // 1 day later
+       "reviewCount": 2, // Increased review count
+       "card": {
+         "id": "card-uuid",
+         "question": "What is hello in Spanish?",
+         "answer": "Hola"
+       }
+     }
+   }
+   ```
+
+   c. **Check Overall Progress**:
+   ```javascript
+   // Get your current progress for the deck
+   fetch('/api/v1/decks/123/progress', {
+     method: 'GET',
+     headers: {
+       'Authorization': 'Bearer your-token'
+     }
+   });
+   // Response:
+   {
+     "status": "success",
+     "data": {
+       "deckId": "deck-uuid",
+       "totalCards": 10,
+       "progress": [
+         // ... all cards with their current status
+       ],
+       "summary": {
+         "totalCards": 10,
+         "knownCards": 8, // Cards you know
+         "learningCards": 2, // Cards you're still learning
+         "completionPercentage": 80
+       }
+     }
+   }
+   ```
+
+   The system will:
+   - Track each attempt separately
+   - Update the status based on your latest answer
+   - Keep track of how many times you've reviewed each card
+   - Adjust the next review date based on whether you got it right or wrong
+   - Provide a summary of your overall progress
+
+7. **Best Practices**:
+   - Update progress immediately after answering each card
+   - Check your overall progress regularly to see your improvement
+   - Focus on cards marked as "learning" in your next review session
+   - Use the review schedule to space out your learning effectively
+
 ## Error Responses
 
 All endpoints may return the following error responses:
